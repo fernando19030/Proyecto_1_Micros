@@ -125,8 +125,7 @@ pop:
 //<editor-fold defaultstate="collapsed" desc="Multiplexado">
 intTMR0:
     reinicioTMR0	    ;Reiniciamos el TMR0
-    clrf    PORTD	    ;Limpiamos los pines RD0, RD1, RD2, RD3, RD4, RD5,
-			    ;RD6, RD7
+    clrf    PORTD	    ;Limpiamos el puerto D
     
     btfsc   flags, 0	    ;Verificamos si la bandera 0 esta prendida
     goto    display2	    ;Si esta prendido nos dirigimos al display 2
@@ -241,19 +240,19 @@ next_display1:
 intTMR1:
     reinicioTMR1	    ;Reiniciamos el TMR1
     
-    btfsc   control+1, 1
-    goto    reseteo_semaforos
+    btfsc   control+1, 1	;Cuando se entra en el modo 4 y se acepta
+    goto    reseteo_semaforos	;Se activa un reset
     
-    decf    semaforo1, F    ;Decrementamos la variable
+    decf    semaforo1, F    ;Decrementamos el semaforo 1
     
-    decf    semaforo2, F    ;Decrementamos la variable
+    decf    semaforo2, F    ;Decrementamos el semaforo 2
     
-    decf    semaforo3, F    ;Decrementamos la variable
+    decf    semaforo3, F    ;Decrementamos el semaforo 3
     
     return
     
 reseteo_semaforos:
-    decf    reseteo, F
+    decf    reseteo, F	    ;Decrementamos el reset
     return
     //</editor-fold>
     
@@ -298,7 +297,8 @@ tabla:
     retlw   00111001B	    ;C
     retlw   01011110B	    ;d
     retlw   01111001B	    ;E
-    retlw   01110001B	    ;F//</editor-fold>  
+    retlw   01110001B	    ;F
+    //</editor-fold>  
 ;---------------configuracion-----------------
 main: 
     call    config_IO	    ;Configuracion de los pines
@@ -308,102 +308,105 @@ main:
     call    config_TMR2	    ;Condiguracion del Timer 2
     call    config_int	    ;Configuracion del las interupciones
  
-valores_iniciales:
-    clrf    semaforo1
+//<editor-fold defaultstate="collapsed" desc="Valores Iniciales del Semaforo">
+valores_iniciales:	    ;Colocamos los valores iniciales de los semaforos
+    clrf    semaforo1	    ;Limpiamos todos los semaforos
     clrf    semaforo2
     clrf    semaforo3
     
-    movlw   15
-    movwf   semaforo1_temp
+    movlw   15		    ;Le ingresamos a las variables temporales de los
+    movwf   semaforo1_temp  ;modos el valor de 15
     movwf   semaforo2_temp
     movwf   semaforo3_temp
     
-    movwf   t_via
+    movwf   t_via	    ;Le ingresamos a los tiempos de via el valor de 15
     movwf   t_via+1
     movwf   t_via+2
     
     
-    movf    t_via, W
+    movf    t_via, W	    ;Cargamos el tiempo en los semaforos 1 y 2: 15 seg
     movwf   semaforo1
     movwf   semaforo2
     
-    addwf   t_via+1, W
-    movwf   semaforo3
+    addwf   t_via+1, W	    ;sumamos el tiempo de via 2 al del 1 y lo colocamos
+    movwf   semaforo3	    ;en el semaforo 3
     
-    bsf	    control, 0
-    
+    bsf	    control, 0	    ;Seteamos la bandera que le indica que el primer 
+			    ;semaforo estara en verde
+			    //</editor-fold>
+ 
     banksel PORTA
     
 ;---------------loop principal---------------
 loop:
-    btfss   PORTB, 0
-    call    cambio_modo
+    btfss   PORTB, 0	    ;Al presionar el boton en RB0 se llama la subrutina
+    call    cambio_modo	    ;para cambiar de modo
     
-    btfsc   control, 0
-    call    green1
-    
+    btfsc   control, 0	    ;verificamos las banderas de control de los semaforos
+    call    green1	    ;dependiendo de cual encienda en el estado del semaforo
+			    ;verde del semaforo 1
     btfsc   control, 1
-    call    green_tilt1
+    call    green_tilt1	    ;verde titilante del semaforo 1
     
     btfsc   control, 2
-    call    yellow1
+    call    yellow1	    ;amarillo del semaforo 1
     
     btfsc   control, 3
-    call    green2
+    call    green2	    ;verde del semaforo 2
     
     btfsc   control, 4
-    call    green_tilt2
+    call    green_tilt2	    ;verde titilante del semaforo 2
     
     btfsc   control, 5
-    call    yellow2
+    call    yellow2	    ;amarillo del semaforo 2
     
     btfsc   control, 6
-    call    green3
+    call    green3	    ;verde del semaforo 3
     
     btfsc   control, 7
-    call    green_tilt3
+    call    green_tilt3	    ;verde titilante del semaforo 3
     
     btfsc   control+1, 0
-    call    yellow3
+    call    yellow3	    ;amarillo del semaforo 3
    
-    btfsc   modos, 0
+    btfsc   modos, 0	    ;Verificamos el primer bit del modo en el que estamos
     goto    mode_selectB    ;1
     goto    mode_selectA    ;0
     
     
 //<editor-fold defaultstate="collapsed" desc="Verficar Modos">
 mode_selectA:
-    btfsc   modos, 1
+    btfsc   modos, 1	    ;Verficamos el segundo bit del modo en el que estamos
     goto    mode_selectD    ;10
     goto    mode_selectC    ;00
     goto    loop
     
 mode_selectB:
-    btfsc   modos, 1
+    btfsc   modos, 1	    ;Verficamos el tercer bit del modo en el que estamos
     goto    mode_selectE    ;11
     goto    mode_selectF    ;01
     goto    loop
 
 mode_selectC:
-    btfsc   modos, 2
+    btfsc   modos, 2	    ;Verficamos el tercer bit del modo en el que estamos
     goto    modo4	    ;100 Modo 4 
     goto    modo0	    ;000 Modo 0
     goto    loop
     
 mode_selectD:
-    btfsc   modos, 2
+    btfsc   modos, 2	    ;Verficamos el tercer bit del modo en el que estamos
     goto    modox	    ;110 6
     goto    modo2	    ;010 Modo 2
     goto    loop
     
 mode_selectE:
-    btfsc   modos, 2
+    btfsc   modos, 2	    ;Verficamos el tercer bit del modo en el que estamos
     goto    modox	    ;111 9
     goto    modo3	    ;011 Modo 3
     goto    loop
     
 mode_selectF:
-    btfsc   modos, 2
+    btfsc   modos, 2	    ;Verficamos el tercer bit del modo en el que estamos
     goto    modox	    ;101 5
     goto    modo1	    ;001 Modo 1
     goto    loop
@@ -411,130 +414,130 @@ mode_selectF:
    
 //<editor-fold defaultstate="collapsed" desc="Modos de funcionamiento">
 modo0:
-    bcf	    PORTE, 0
+    bcf	    PORTE, 0	    ;Apagamos todas las leds
     bcf	    PORTE, 1
     bcf	    PORTE, 2
     
-    clrf    display+6
+    clrf    display+6	    ;Apagamos los displays de configuración
     clrf    display+7
     goto    loop
     
-modo1:
-    movf    semaforo1_temp, W
-    movwf   contador
-    bsf	    PORTE, 0
+modo1:				;Modificamos el valor del semaforo 1
+    movf    semaforo1_temp, W	;Movemos lo que esta en la variable temporal 
+    movwf   contador		;a la variabel de modificacion
+    bsf	    PORTE, 0		;Encendemos la primera led
     bcf	    PORTE, 1
     bcf	    PORTE, 2
     
-    btfss   PORTB, 1
+    btfss   PORTB, 1		;Al presionar RB1 incrementamos la variable
     call    incremento
     
-    btfss   PORTB, 2
+    btfss   PORTB, 2		;Al presionar RB2 decrementamos la variable
     call    decremento
     
-    movf    contador, W
-    movwf   semaforo1_temp
-    movwf   decimal
+    movf    contador, W		;Despues de modificar la variable la movemos a W
+    movwf   semaforo1_temp	;La movemos a la variable temporal del semaforo 1
+    movwf   decimal		;y a la variable de conversion a decimal
     
-    call    Conversor
+    call    Conversor		;Se convierte a decimal la variable
     
-    movf    unidad, W
+    movf    unidad, W		;Guardamos en la localidad de memoria la unidad
     movwf   unidad+4
     
-    movf    decena, W
+    movf    decena, W		;Guardamos en la localidad de memoria la decena
     movwf   decena+4
     
-    call    dispmode_on
+    call    dispmode_on		;Configuramos los displays
     
     goto    loop
     
-modo2:
-    movf    semaforo2_temp, W
-    movwf   contador
+modo2:				;Modificamos el valor del semaforo 2
+    movf    semaforo2_temp, W	;Movemos lo que esta en la variable temporal
+    movwf   contador		;a la variabel de modificacion
     
-    bcf	    PORTE, 0
+    bcf	    PORTE, 0		;Encendemos la segunda led
     bsf	    PORTE, 1
     bcf	    PORTE, 2
     
-    btfss   PORTB, 1
+    btfss   PORTB, 1		;Al presionar RB1 incrementamos la variable
     call    incremento
     
-    btfss   PORTB, 2
+    btfss   PORTB, 2		;Al presionar RB2 decrementamos la variable
     call    decremento
     
-    movf    contador, W
-    movwf   semaforo2_temp
-    movwf   decimal
+    movf    contador, W		;Despues de modificar la variable la movemos a W
+    movwf   semaforo2_temp	;La movemos a la variable temporal del semaforo 2
+    movwf   decimal		;y a la variable de conversion a decimal
     
-    call    Conversor
+    call    Conversor		;Se convierte a decimal la variable
     
-    movf    unidad, W
+    movf    unidad, W		;Guardamos en la localidad de memoria la unidad
     movwf   unidad+4
     
-    movf    decena, W
+    movf    decena, W		;Guardamos en la localidad de memoria la decena
     movwf   decena+4
     
-    call    dispmode_on
+    call    dispmode_on		;Configuramos los displays
     goto    loop
     
-modo3:
-    movf    semaforo3_temp, W
-    movwf   contador
+modo3:				;Modificamos el valor del semaforo 3
+    movf    semaforo3_temp, W	;Movemos lo que esta en la variable temporal
+    movwf   contador		;a la variabel de modificacion
     
-    bcf	    PORTE, 0
+    bcf	    PORTE, 0		;Encendemos la tercera led
     bcf	    PORTE, 1
     bsf	    PORTE, 2
     
-    btfss   PORTB, 1
+    btfss   PORTB, 1		;Al presionar RB1 incrementamos la variable
     call    incremento
     
-    btfss   PORTB, 2
+    btfss   PORTB, 2		;Al presionar RB2 decrementamos la variable
     call    decremento
     
-    movf    contador, W
-    movwf   semaforo3_temp
-    movwf   decimal
+    movf    contador, W		;Despues de modificar la variable la movemos a W
+    movwf   semaforo3_temp	;La movemos a la variable temporal del semaforo 3
+    movwf   decimal		;y a la variable de conversion a decimal
     
-    call    Conversor
+    call    Conversor		;Se convierte a decimal la variable
     
-    movf    unidad, W
+    movf    unidad, W		;Guardamos en la localidad de memoria la unidad
     movwf   unidad+4
     
-    movf    decena, W
+    movf    decena, W		;Guardamos en la localidad de memoria la decena
     movwf   decena+4
     
-    call    dispmode_on
+    call    dispmode_on		;Configuramos los displays
     goto    loop
     
-modo4: 
-    bsf	    PORTE, 0
+modo4:				;Aceptamos o rechazamos los cambios
+    bsf	    PORTE, 0		;Encendemos las tres leds
     bsf	    PORTE, 1
     bsf	    PORTE, 2
     
-    movlw   5
+    movlw   5			;Movemos la literal a la variabel de reseteo
     movwf   reseteo
     
-    clrf    display+6
+    clrf    display+6		;Limpiamos los displays de configuracion
     clrf    display+7
     
-    btfss   PORTB, 1
+    btfss   PORTB, 1		;Si presionamos RB1 aceptamos los cambios
     goto    acepto
     
-    btfss   PORTB, 2
+    btfss   PORTB, 2		;Si presionamos RB2 rechazamos los cambios
     goto    rechazo
     
     goto    loop  
     
-modox: 
-    clrf    modos
+modox:				;Modo arbitrario
+    clrf    modos		;Limpiamos la variable de modos
     goto    loop
     
 acepto:
-    btfss   PORTB, 1
+    btfss   PORTB, 1		;Antirebote
     goto    $-1
-    clrf    modos
+    clrf    modos		;Limpiamos la variable modos
     
-    bsf	    PORTA, 0
+    bsf	    PORTA, 0		;Colocamos los semaforos en rojo
     bcf	    PORTA, 1
     bcf	    PORTA, 2
     bsf	    PORTA, 3
@@ -544,23 +547,22 @@ acepto:
     bcf	    PORTA, 7
     bcf	    PORTB, 3
     
-    bsf	    control+1, 1
+    bsf	    control+1, 1	;Activamos la bandera de reseteo
        
-    movf    reseteo, W
-;    sublw   1
-    movwf   decimal
+    movf    reseteo, W		;Movemos el tiempo de reseteo en W
+    movwf   decimal		;La movemos a la variable de conversion
     
-    call    Conversor
+    call    Conversor		;Convertimos a decimal
     
-    movf    unidad, W
+    movf    unidad, W		;Movemos la unidad a la variable
     movwf   unidad+4
     
-    movf    decena, W
+    movf    decena, W		;Movemos la decena a la variable
     movwf   decena+4
     
-    call    dispmode_on
+    call    dispmode_on		;Activamos el display de configuracion
     
-    clrf    display
+    clrf    display		;Apagamos los displays de los semaforos
     clrf    display+1
     
     clrf    display+2
@@ -569,23 +571,23 @@ acepto:
     clrf    display+4
     clrf    display+5
     
-    movlw   1
-    subwf   reseteo, W
+    movlw   1			
+    subwf   reseteo, W		;Restamos la literal de la variable de reseteo
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2		;Si la resta da 0 cargamos las variables
     goto    carga
     goto    $-31
     
     goto    loop
     
 rechazo:
-    btfss   PORTB, 2
+    btfss   PORTB, 2		;Antirebote
     goto    $-1
-    clrf    modos
+    clrf    modos		;Limpiamos la variable de modos
     goto    loop
     
 carga:
-    movf    semaforo1_temp, W
+    movf    semaforo1_temp, W	;Trasladamos los nuevos tiempos de via
     movwf   t_via
     
     movf    semaforo2_temp, W
@@ -594,19 +596,19 @@ carga:
     movf    semaforo3_temp, W
     movwf   t_via+2
     
-    movf    t_via, W
-    movwf   semaforo1
+    movf    t_via, W		;Colocamos el tiempo de via 1
+    movwf   semaforo1		;en el semaforo 1 y 2
     movwf   semaforo2
     
-    addwf   t_via+1, W
-    movwf   semaforo3
+    addwf   t_via+1, W		;sumamos el tiempo de via 1 y 2 y lo guardamos en W
+    movwf   semaforo3		;lo movemos al semaforo 3
     
-    clrf    control
+    clrf    control		;Limpiamos la variable de control
     bcf	    control+1, 0
     bcf	    control+1, 1
     
-    bsf	    control, 0
-    goto    loop
+    bsf	    control, 0		;Seteamos la variable que indica que el semaforo 1
+    goto    loop		;esta en verde
     //</editor-fold>
 
 ;---------------sub rutinas------------------
@@ -712,27 +714,27 @@ config_TMR2:
    
 //<editor-fold defaultstate="collapsed" desc="Displays Semaforos">
 display_setup:
-    movf    unidad+1, W		;Mover lo que esta en PORTA a W
+    movf    unidad+1, W		;Mover la unidad a W
     call    tabla		;Llamar a tabla
     movwf   display, F		;Mover lo que esta en W al primer byte de la variable
     
-    movf    decena+1, W	;Mover lo que esta en PORTA a W
+    movf    decena+1, W		;Mover la decena a W
     call    tabla		;Llamar a tabla
     movwf   display+1, F	;Mover lo que esta en W al segundo byte de la variable
 
-    movf    unidad+2, W		;Mover lo que esta en la variable a W
+    movf    unidad+2, W		;Mover la unidad a W
     call    tabla		;Llamar a tabla
     movwf   display+2, F	;Mover lo que esta en W al tercer byte de la variable
     
-    movf    decena+2, W		;Mover lo que esta en la variable a W
+    movf    decena+2, W		;Mover la decena a W
     call    tabla		;Llamar a tabla
     movwf   display+3, F	;Mover lo que esta en W al cuarto byte de la variable
     
-    movf    unidad+3, W		;Mover lo que esta en la variable a W
+    movf    unidad+3, W		;Mover la unidad a W
     call    tabla		;Llamar a tabla
     movwf   display+4, F	;Mover lo que esta en W al quinto byte de la variable
     
-    movf    decena+3, W		;Mover lo que esta en la variable a W
+    movf    decena+3, W		;Mover la decena a W
     call    tabla		;Llamar a tabla
     movwf   display+5, F	;Mover lo que esta en W al sexto byte de la variable
     
@@ -741,11 +743,11 @@ display_setup:
    
 //<editor-fold defaultstate="collapsed" desc="Display Modos">
 dispmode_on:
-    movf    unidad+4, W		;Mover lo que esta en la variable a W
+    movf    unidad+4, W		;Mover la unidad a W
     call    tabla		;Llamar a tabla
     movwf   display+6, F	;Mover lo que esta en W al tercer byte de la variable
     
-    movf    decena+4, W		;Mover lo que esta en la variable a W
+    movf    decena+4, W		;Mover la decena a W
     call    tabla		;Llamar a tabla
     movwf   display+7, F	;Mover lo que esta en W al cuarto byte de la variable
     
@@ -778,301 +780,301 @@ unidades:
   
 //<editor-fold defaultstate="collapsed" desc="ModeChange">
 cambio_modo:
-    btfss   PORTB, 0
+    btfss   PORTB, 0	;Antirebote
     goto    $-1
-    incf    modos
+    incf    modos	;Incrementamos la variable de cambio de modos
     return
     //</editor-fold>
    
 //<editor-fold defaultstate="collapsed" desc="Incremento/Decremento">
 incremento:
-    btfss   PORTB, 1
+    btfss   PORTB, 1	    ;Antirebote
     goto    $-1
-    incf    contador
-    call    limite_superior
+    incf    contador	    ;Incrementamos la variable de conteo general
+    call    limite_superior ;Llamamos la subrutina que evita el overflow de 20
     
-    movf    contador, W
+    movf    contador, W	    ;Movemos lo que esta en la variable a W
     return
     
 decremento:
-    btfss   PORTB, 2
+    btfss   PORTB, 2	    ;Antirebote
     goto    $-1
-    decf    contador 
-    call    limite_inferior
+    decf    contador	    ;Decrementamos la variable de conteo general
+    call    limite_inferior ;Llamamos la subrutina que evita el underflow de 10
     
-    movf    contador, W
+    movf    contador, W	    ;Movemos lo que esta en la variable a W
     return
     //</editor-fold>
     
 //<editor-fold defaultstate="collapsed" desc="Limites">
 limite_inferior:
-    movlw   9
-    subwf   contador, W
+    movlw   9		;Movemos 9 a W
+    subwf   contador, W	;Lo restamos del contador
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	;Si da 0 ocurre un underflow
     goto    underflow
     
     return
     
 underflow:
-    movlw   20
+    movlw   20		;Cargamos 20 en el contador
     movwf   contador
     return
     
 limite_superior:
-    movlw   21
-    subwf   contador, W
+    movlw   21		;Movemos 21 a W
+    subwf   contador, W	;Lo restamos del contador
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	;Si da 0 ocurre un overflow
     goto    overflow
     
     return
     
 overflow:
-    movlw   10
+    movlw   10		;Cargamos 10 en el contador
     movwf   contador
     return
     //</editor-fold>
   
 //<editor-fold defaultstate="collapsed" desc="Convertir los Semaforos">
 semaforoDecimal:
-    movf    semaforo1, W
-    movwf   decimal
+    movf    semaforo1, W    ;Movemos lo que esta en el semaforo 1 
+    movwf   decimal	    ;al conversor decimal
     
-    call    Conversor
-    movf    unidad, W
+    call    Conversor	    ;Convertimos a decimal
+    movf    unidad, W	    ;Movemos la unidad a la variable del display 1
     movwf   unidad+1
     
-    movf    decena, W
+    movf    decena, W	    ;Movemos la decena a la variable del display 2
     movwf   decena+1
     
-    movf    semaforo2, W
-    movwf   decimal
+    movf    semaforo2, W    ;Movemos lo que esta en el semaforo 2
+    movwf   decimal	    ;al conversor decimal
     
-    call    Conversor
-    movf    unidad, W
+    call    Conversor	    ;Convertimos a decimal
+    movf    unidad, W	    ;Movemos la unidad a la variable del display 3
     movwf   unidad+2
     
-    movf    decena, W
+    movf    decena, W	    ;Movemos la decena a la variable del display 4
     movwf   decena+2
     
-    movf    semaforo3, W
-    movwf   decimal
+    movf    semaforo3, W    ;Movemos lo que esta en el semaforo 3
+    movwf   decimal	    ;al conversor decimal
     
-    call    Conversor
-    movf    unidad, W
+    call    Conversor	    ;Convertimos a decimal
+    movf    unidad, W	    ;Movemos la unidad a la variable del display 5
     movwf   unidad+3
     
-    movf    decena, W
+    movf    decena, W	    ;Movemos la decena a la variable del display 6
     movwf   decena+3
     return
     //</editor-fold>
     
 //<editor-fold defaultstate="collapsed" desc="Conteo Semaforos">
-green1:
-    call    semaforoDecimal
-    call    display_setup
+green1:			    ;Semaforo 1 en verde
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
-    bcf	    PORTB, 3
-    bcf	    PORTA, 0
+    bcf	    PORTB, 3	    ;Colocamos los semaforos 2 y 3 en rojo
+    bcf	    PORTA, 0	    ;y el semaforo 1 en verde
     bcf	    PORTA, 7
     bsf	    PORTA, 2
     bsf	    PORTA, 3
     bsf	    PORTA, 6
     
-    movlw   6
+    movlw   6		    ;Restamos 6 del valor del semaforo 2 y lo guardamos en W
     subwf   semaforo2, W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_tilt1
     return
     
 push_tilt1:
-    bcf	    control, 0
-    bsf	    control, 1
+    bcf	    control, 0	    ;Apagamos la bandera
+    bsf	    control, 1	    ;Encendemos la bandera
     return
     
 green_tilt1:
-    call    semaforoDecimal
-    call    display_setup
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
     btfss   tilt, 0	    ;verficamos si la bandera esta apagada
-    bcf	    PORTA, 2
+    bcf	    PORTA, 2	    ;Apagamos la luz verde del semaforo 1
     
     btfsc   tilt, 0	    ;verficamos si la bandera esta encendida
-    bsf	    PORTA, 2
+    bsf	    PORTA, 2	    ;Encendemos la luz verde del semaforo 1
     
-    movlw   3
+    movlw   3		    ;Restamos 3 del valor del semaforo 2 y lo guardamos en W
     subwf   semaforo2, W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_yellow1
     return
     
 push_yellow1:
-    bcf	    control, 1
-    bsf	    control, 2
+    bcf	    control, 1	    ;Apagamos la bandera
+    bsf	    control, 2	    ;Encendemos la bandera
     return
     
 yellow1:
-    call    semaforoDecimal
-    call    display_setup
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
-    bcf	    PORTA, 2
-    bsf	    PORTA, 1
+    bcf	    PORTA, 2	    ;Apagamos la luz verde del semaforo 1
+    bsf	    PORTA, 1	    ;y encendemos la luz amarilla
     
-    movf    t_via+1, w
-    subwf   semaforo3, W
+    movf    t_via+1, w	    ;Restamos tiempo de via 2 del valor del semaforo 3
+    subwf   semaforo3, W    ;y lo guardamos en W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_green2
     return
     
 push_green2:
-    bcf	    control, 2
-    bsf	    control, 3
+    bcf	    control, 2	    ;Apagamos la bandera
+    bsf	    control, 3	    ;Encendemos la bandera
     
-    movf    t_via+1, W
+    movf    t_via+1, W	    ;Colocamos el tiempo de via 2 en el semaforo 2
     movwf   semaforo2
     
-    addwf   t_via+2, W
-    movwf   semaforo1
+    addwf   t_via+2, W	    ;sumamos el tiempo de via 2 y 3 y lo colocamos
+    movwf   semaforo1	    ;en el semaforo 1
     return
     
 green2:
-    call    semaforoDecimal
-    call    display_setup
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
-    bcf	    PORTA, 1
-    bcf	    PORTA, 3
-    bsf	    PORTA, 0
+    bcf	    PORTA, 1	    ;Apagamo la luz amarilla del semaforo 1
+    bcf	    PORTA, 3	    ;y la luz roja del semaforo 2 para encender la luz
+    bsf	    PORTA, 0	    ;verde del mismo y la roja del semaforo 1
     bsf	    PORTA, 5
     
-    movlw   6
+    movlw   6		    ;Restamos 6 del valor del semaforo 2 y lo guardamos en W
     subwf   semaforo3, W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_tilt2
     return
     
 push_tilt2:
-    bcf	    control, 3
-    bsf	    control, 4
+    bcf	    control, 3	    ;Apagamos la bandera
+    bsf	    control, 4	    ;Encendemos la bandera
     return
     
 green_tilt2:
-    call    semaforoDecimal
-    call    display_setup
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
     btfss   tilt, 0	    ;verficamos si la bandera esta apagada
-    bcf	    PORTA, 5
+    bcf	    PORTA, 5	    ;Apagamos la luz verde del semaforo 2
     
     btfsc   tilt, 0	    ;verficamos si la bandera esta encendida
-    bsf	    PORTA, 5
+    bsf	    PORTA, 5	    ;Encendemos la luz verde del semaforo 2
     
-    movlw   3
+    movlw   3		    ;Restamos 3 del valor del semaforo 3 y lo guardamos en W
     subwf   semaforo3, W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_yellow2
     return
     
 push_yellow2:
-    bcf	    control, 4
-    bsf	    control, 5
+    bcf	    control, 4	    ;Apagamos la bandera
+    bsf	    control, 5	    ;Encendemos la bandera
     return
     
 yellow2:
-    call    semaforoDecimal
-    call    display_setup
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
-    bcf	    PORTA, 5
-    bsf	    PORTA, 4
+    bcf	    PORTA, 5	    ;Apagamos la luz verde del semaforo 2
+    bsf	    PORTA, 4	    ;y encendemos la luz amarilla
     
-    movf    t_via+2, w
-    subwf   semaforo1, W
+    movf    t_via+2, w	    ;Restamos tiempo de via 3 del valor del semaforo 1
+    subwf   semaforo1, W    ;y lo guardamos en W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_green3
     return
     
 push_green3:
-    bcf	    control, 5
-    bsf	    control, 6
+    bcf	    control, 5	    ;Apagamos la bandera
+    bsf	    control, 6	    ;Encendemos la bandera
     
-    movf    t_via+2, W
+    movf    t_via+2, W	    ;Colocamos el tiempo de via 3 en el semaforo 3
     movwf   semaforo3
     
-    addwf   t_via, W
-    movwf   semaforo2
+    addwf   t_via, W	    ;Sumamos el tiempo de via 1 y 3 y lo colocamos en el 
+    movwf   semaforo2	    ;semaforo 2
     return
     
 green3:
-    call    semaforoDecimal
-    call    display_setup
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
-    bcf	    PORTA, 4
-    bcf	    PORTA, 6
-    bsf	    PORTA, 3
-    bsf	    PORTB, 3
+    bcf	    PORTA, 4	    ;Apagamos la luz amarilla del semaforo 2 y la 
+    bcf	    PORTA, 6	    ;luz roja del semaforo 3
+    bsf	    PORTA, 3	    ;Encendemos la luz verde del semaforo 3 y la roja
+    bsf	    PORTB, 3	    ;del semaforo 2
     
-    movlw   6
+    movlw   6		    ;Restamos 6 del valor del semaforo 2 y lo guardamos en W
     subwf   semaforo1, W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_tilt3
     return
     
 push_tilt3:
-    bcf	    control, 6
-    bsf	    control, 7
+    bcf	    control, 6	    ;Apagamos la bandera
+    bsf	    control, 7	    ;Encendemos la bandera
     return
     
 green_tilt3:
-    call    semaforoDecimal
-    call    display_setup
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
     btfss   tilt, 0	    ;verficamos si la bandera esta apagada
-    bcf	    PORTB, 3
+    bcf	    PORTB, 3	    ;Apagamos la luz verde del semaforo 3
     
     btfsc   tilt, 0	    ;verficamos si la bandera esta encendida
-    bsf	    PORTB, 3
+    bsf	    PORTB, 3	    ;Encendemos la luz verde del semaforo 3
     
-    movlw   3
+    movlw   3		    ;Restamos 3 del valor del semaforo 1 y lo guardamos en W
     subwf   semaforo1, W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_yellow3
     return
     
 push_yellow3:
-    bcf	    control, 7
-    bsf	    control+1, 0
+    bcf	    control, 7	    ;Apagamos la bandera
+    bsf	    control+1, 0    ;Encendemos la bandera
     return
     
 yellow3:
-    call    semaforoDecimal
-    call    display_setup
+    call    semaforoDecimal ;Convertimos a decimal los tres semaforos
+    call    display_setup   ;Desplegamos en los displays
     
-    bcf	    PORTB, 3
-    bsf	    PORTA, 7
+    bcf	    PORTB, 3	    ;Apagamos la luz verde del semaforo 3 y 
+    bsf	    PORTA, 7	    ;encendemos la luz amarilla del semaforo 3
     
-    movf    t_via, w
-    subwf   semaforo2, W
+    movf    t_via, w	    ;Restamos tiempo de via 1 del valor del semaforo 2
+    subwf   semaforo2, W    ;y lo guardamos en W
     
-    btfsc   STATUS, 2
+    btfsc   STATUS, 2	    ;Si da 0 cambiamos de estado
     call    push_green1
     return
     
 push_green1:
-    bcf	    control+1, 0
-    bsf	    control, 0
+    bcf	    control+1, 0    ;Apagamos la bandera
+    bsf	    control, 0	    ;Encendemos la bandera
     
-    movf    t_via, W
-    movwf   semaforo1
+    movf    t_via, W	    ;Colocamos el tiempo de via 1 en el semaforo 1
+    movwf   semaforo1	    
     
-    addwf   t_via+1, W
-    movwf   semaforo3
+    addwf   t_via+1, W	    ;Sumamdos el tiempo de via 1 y 2 y lo colocamos en
+    movwf   semaforo3	    ;el semaforo 3
     return
     //</editor-fold>
   
