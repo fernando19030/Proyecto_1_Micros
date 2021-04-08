@@ -6,11 +6,12 @@
 ; Autor: Fernando Arribas
 ; Compilador: pic-as (v2.31), MPLABX V5.45
 ;
-; Programa: Contador con interupción del Timer 1 cada segundo y Parpadea cada 250 ms con Timer 2
-; Hardware: 2 displays 7 segmentos en PORTC y una led en PORTD
+; Programa: 3 Semaforos con tiempo de via configutable
+; Hardware: 8 displays 7 segmentos en PORTC con los controladores en PORTD,
+; 3 pushbotons en PORTB y leds en PORTA, RB3 y PORTE
 ;
 ; Creado: 16 mar, 2021
-; Ultima modificacion: 02 abr, 2021
+; Ultima modificacion: 05 abr, 2021
 
 PROCESSOR 16F887 ;Definición del procesador a utilizar
 
@@ -2459,7 +2460,7 @@ stk_offset SET 0
 auto_size SET 0
 ENDM
 # 7 "C:\\Program Files\\Microchip\\xc8\\v2.31\\pic\\include\\xc.inc" 2 3
-# 14 "Proyecto_1.s" 2
+# 15 "Proyecto_1.s" 2
 
 ; CONFIG1
   CONFIG FOSC = INTRC_NOCLKOUT ; Oscillator Selection bits (INTOSCIO oscillator: I/O function on ((PORTA) and 07Fh), 6/OSC2/CLKOUT pin, I/O function on ((PORTA) and 07Fh), 7/OSC1/CLKIN)
@@ -2788,9 +2789,6 @@ valores_iniciales: ;Colocamos los valores iniciales de los semaforos
 
 ;---------------loop principal---------------
 loop:
-    btfss PORTB, 0 ;Al presionar el boton en ((PORTB) and 07Fh), 0 se llama la subrutina
-    call cambio_modo ;para cambiar de modo
-
     btfsc control, 0 ;verificamos las banderas de control de los semaforos
     call green1 ;dependiendo de cual encienda en el estado del semaforo
        ;verde del semaforo 1
@@ -2817,6 +2815,9 @@ loop:
 
     btfsc control+1, 0
     call yellow3 ;amarillo del semaforo 3
+
+    btfss PORTB, 0 ;Al presionar el boton en ((PORTB) and 07Fh), 0 se llama la subrutina
+    call cambio_modo ;para cambiar de modo
 
     btfsc modos, 0 ;Verificamos el primer bit del modo en el que estamos
     goto mode_selectB ;1
@@ -2850,7 +2851,7 @@ mode_selectD:
 
 mode_selectE:
     btfsc modos, 2 ;Verficamos el tercer bit del modo en el que estamos
-    goto modox ;111 9
+    goto modox ;111 7
     goto modo3 ;011 Modo 3
     goto loop
 
@@ -3092,7 +3093,7 @@ config_IO:
 
 config_CLK:
     banksel OSCCON ;Banco 1
-    bsf ((OSCCON) and 07Fh), 6 ;Reloj de 1 MHz IRCF = 111
+    bsf ((OSCCON) and 07Fh), 6 ;Reloj de 1 MHz IRCF = 100
     bcf ((OSCCON) and 07Fh), 5
     bcf ((OSCCON) and 07Fh), 4
     bsf ((OSCCON) and 07Fh), 0 ;Reloj Interno
